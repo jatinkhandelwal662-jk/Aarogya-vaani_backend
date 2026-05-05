@@ -11,8 +11,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const app = express();
 
 // CONFIGURATION
-const PUBLIC_URL = "https://aarogya-vaani-backend.onrender.com"; 
-const MONGO_URI="mongodb://jatinkhandelwal662_db_user:2eY.u8PSknLT-D7@cluster0-shard-00-00.fxkuaqx.mongodb.net:27017,cluster0-shard-00-01.fxkuaqx.mongodb.net:27017,cluster0-shard-00-02.fxkuaqx.mongodb.net:27017/arogya_vaani?ssl=true&authSource=admin&retryWrites=true&w=majority";
+const PUBLIC_URL = "https://aarogya-vaani-backend.onrender.com";
+const MONGO_URI="mongodb+srv://jatinkhandelwal662_db_user:2eY.u8PSknLT-D7@cluster0.fxkuaqx.mongodb.net/arogya_vaani?appName=Cluster0"; 
 // --- TWILIO CREDENTIALS---
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
