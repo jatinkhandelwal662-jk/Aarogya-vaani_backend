@@ -11,7 +11,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const app = express();
 
 // CONFIGURATION
-const PUBLIC_URL = "https://husbandless-kerry-unvitrescent.ngrok-free.dev";
+const PUBLIC_URL = "https://aarogya-vaani-backend.onrender.com"; 
 const MONGO_URI="mongodb://jatinkhandelwal662_db_user:2eY.u8PSknLT-D7@cluster0-shard-00-00.fxkuaqx.mongodb.net:27017,cluster0-shard-00-01.fxkuaqx.mongodb.net:27017,cluster0-shard-00-02.fxkuaqx.mongodb.net:27017/arogya_vaani?ssl=true&authSource=admin&retryWrites=true&w=majority";
 // --- TWILIO CREDENTIALS---
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -613,4 +613,5 @@ app.get("/api/seed-asha", async (req, res) => {
 });
 
 
-app.listen(5000, () => console.log("Backend running on http://localhost:5000"));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
