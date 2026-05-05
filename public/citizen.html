@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Citizen Call</title>
+    
+    <script src="https://unpkg.com/@twilio/voice-sdk@2.11.1/dist/twilio.min.js"></script>
+    <link rel="shortcut icon" href="citizen-web logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --accent-indigo: #6366f1;
+            --accent-cyan: #22d3ee;
+            --bg-deep: #050811;
+        }
+        body { 
+            font-family: 'Space Grotesk', sans-serif; 
+            background-color: var(--bg-deep);
+            color: #f8fafc;
+            overflow: hidden;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Neural Background */
+        .bg-neural {
+            background: 
+                radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15), transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(34, 211, 238, 0.08), transparent 50%),
+                var(--bg-deep);
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6); /* Slightly Darker for Contrast */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Floating Orb Button */
+        .floating-orb {
+            position: relative;
+            background: linear-gradient(135deg, var(--accent-indigo), #4f46e5);
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            box-shadow: 0 0 30px -5px rgba(99, 102, 241, 0.5);
+        }
+        .floating-orb:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px -5px rgba(99, 102, 241, 0.8);
+        }
+        .floating-orb:active { transform: scale(0.95); }
+
+        /* Keypad Styles */
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .key-btn {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .key-btn:active {
+            background: rgba(34, 211, 238, 0.3);
+            transform: scale(0.9);
+        }
+
+        .hidden { display: none !important; }
+        .visible { display: flex !important; }
+    </style>
+</head>
+<body class="bg-neural h-screen w-full flex items-center justify-center p-4">
+
+    <div class="glass-panel w-full max-w-md rounded-3xl p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[600px]">
+        
+        <div class="absolute top-6 left-0 w-full flex justify-center opacity-70">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                <span class="text-xs font-bold tracking-[0.2em] text-indigo-300">CITIZEN CALL DEMO</span>
+            </div>
+        </div>
+
+        <div id="screen-activate" class="w-full flex flex-col items-center visible transition-all duration-500">
+            <div class="relative group cursor-pointer mb-8">
+                <button id="btnInit" class="floating-orb w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl z-10 relative">
+                    <i class="ri-power-line"></i>
+                </button>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Initialize Link</h2>
+            <p id="activate-status" class="text-slate-400 text-sm mono text-center max-w-[200px]">
+                Establish secure voice channel with Govt Officer.
+            </p>
+        </div>
+
+        <div id="screen-idle" class="w-full flex-col items-center hidden animate-fade-in">
+            <div class="w-32 h-32 rounded-full border border-cyan-500/20 flex items-center justify-center relative mb-6">
+                <div class="absolute inset-0 rounded-full border border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent animate-spin duration-[3s]"></div>
+                <i class="ri-radar-line text-4xl text-cyan-400"></i>
+            </div>
+            <div class="flex items-center gap-3 bg-cyan-500/10 px-4 py-2 rounded-full border border-cyan-500/20 mb-4">
+                <div class="status-dot bg-cyan-400" style="width: 8px; height: 8px; border-radius: 50%;"></div>
+                <span class="text-cyan-300 text-sm mono font-medium">SYSTEM ONLINE</span>
+            </div>
+            <p class="text-slate-500 text-xs mono uppercase tracking-widest">Waiting for incoming transmission...</p>
+        </div>
+
+        <div id="screen-incoming" class="w-full flex-col items-center hidden">
+            <div class="mb-8 relative">
+                <div class="w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-3xl animate-pulse">
+                    <i class="ri-government-fill"></i>
+                </div>
+            </div>
+            <div class="text-center mb-10">
+                <h3 class="text-2xl font-bold text-white mb-1">Incoming Call</h3>
+                <p class="text-indigo-300 mono text-sm">SECURE LINE • OFFICER AAROGYA VAANI</p>
+            </div>
+            <div class="flex items-center gap-6 w-full px-4">
+                <button id="btnReject" class="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-400 py-4 rounded-2xl flex items-center justify-center gap-2">
+                    <i class="ri-close-line text-xl"></i> <span class="mono text-xs font-bold">DECLINE</span>
+                </button>
+                <button id="btnAccept" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                    <i class="ri-phone-fill text-xl"></i> <span class="mono text-xs font-bold">ACCEPT</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-incall" class="w-full flex-col items-center hidden">
+            <div class="flex flex-col items-center mb-6">
+                <span class="text-emerald-400 mono text-xs mb-2 tracking-widest">● LIVE CONNECTION</span>
+                <h1 class="text-2xl font-bold text-white">Aarogya Vaani</h1>
+                <span id="call-timer" class="text-slate-400 mono text-sm mt-1">00:00</span>
+            </div>
+
+            <div class="keypad-grid">
+                <button class="key-btn" onclick="sendDTMF('1')">1</button>
+                <button class="key-btn" onclick="sendDTMF('2')">2</button>
+                <button class="key-btn" onclick="sendDTMF('3')">3</button>
+                <button class="key-btn" onclick="sendDTMF('4')">4</button>
+                <button class="key-btn" onclick="sendDTMF('5')">5</button>
+                <button class="key-btn" onclick="sendDTMF('6')">6</button>
+                <button class="key-btn" onclick="sendDTMF('7')">7</button>
+                <button class="key-btn" onclick="sendDTMF('8')">8</button>
+                <button class="key-btn" onclick="sendDTMF('9')">9</button>
+                <button class="key-btn" onclick="sendDTMF('*')">*</button>
+                <button class="key-btn" onclick="sendDTMF('0')">0</button>
+                <button class="key-btn" onclick="sendDTMF('#')">#</button>
+            </div>
+
+            <button id="btnEnd" class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white text-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110">
+                <i class="ri-phone-end-fill"></i>
+            </button>
+        </div>
+
+        <div class="absolute bottom-4 w-full px-8 flex justify-between text-[10px] text-slate-600 mono">
+            <span>ID: CITIZEN</span>
+            <span id="network-status">NET: UNSTABLE</span>
+        </div>
+    </div>
+
+    <script>
+        let device;
+        let activeConnection = null; // Store active connection for DTMF
+        let timerInterval;
+        let seconds = 0;
+
+        const screens = {
+            activate: document.getElementById('screen-activate'),
+            idle: document.getElementById('screen-idle'),
+            incoming: document.getElementById('screen-incoming'),
+            incall: document.getElementById('screen-incall')
+        };
+
+        function showScreen(name) {
+            Object.values(screens).forEach(s => {
+                s.classList.remove('visible');
+                s.classList.add('hidden');
+            });
+            screens[name].classList.remove('hidden');
+            screens[name].classList.add('visible');
+        }
+
+        function startTimer() {
+            seconds = 0;
+            document.getElementById('call-timer').innerText = "00:00";
+            timerInterval = setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const secs = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('call-timer').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        // --- DTMF FUNCTION ---
+        function sendDTMF(digit) {
+            if (activeConnection) {
+                console.log("Sending DTMF:", digit);
+                activeConnection.sendDigits(digit);
+            }
+        }
+
+        // --- INIT LOGIC ---
+        document.getElementById('btnInit').addEventListener('click', async () => {
+            const status = document.getElementById('activate-status');
+            const netStatus = document.getElementById('network-status');
+            
+            if (typeof Twilio === 'undefined') {
+                status.innerHTML = "<span class='text-red-400'>Error: SDK Blocked by Network</span>";
+                return;
+            }
+
+            status.innerHTML = "<span class='text-indigo-400 animate-pulse'>Establishing Uplink...</span>";
+
+            try {
+                const response = await fetch('/api/token');
+                if (!response.ok) throw new Error("Backend Offline");
+                const data = await response.json();
+
+                device = new Twilio.Device(data.token, {
+                    codecPreferences: ['opus', 'pcmu'],
+                    fakeLocalDTMF: true,
+                    enableRingingState: true
+                });
+
+                device.on('registered', () => {
+                    showScreen('idle');
+                    netStatus.innerText = "NET: SECURE";
+                    netStatus.classList.add('text-emerald-500');
+                });
+
+                device.on('error', (err) => {
+                    console.error(err);
+                    status.innerHTML = `<span class='text-red-400'>Error: ${err.message}</span>`;
+                });
+
+                // Incoming Call Handling
+                device.on('incoming', (conn) => {
+                    activeConnection = conn; // Save connection for DTMF
+                    showScreen('incoming');
+
+                    document.getElementById('btnAccept').onclick = () => {
+                        conn.accept();
+                        showScreen('incall');
+                        startTimer();
+                    };
+
+                    document.getElementById('btnReject').onclick = () => {
+                        conn.reject();
+                        activeConnection = null;
+                        showScreen('idle');
+                    };
+
+                    document.getElementById('btnEnd').onclick = () => {
+                        conn.disconnect();
+                    };
+
+                    conn.on('disconnect', () => {
+                        stopTimer();
+                        activeConnection = null;
+                        showScreen('idle');
+                    });
+                });
+
+                device.register();
+
+            } catch (err) {
+                console.error(err);
+                status.innerHTML = `<span class='text-red-400'>Server Offline. Check Terminal.</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
